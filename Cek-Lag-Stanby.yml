@@ -1,6 +1,6 @@
 ---
 - name: Query Oracle Database Role and Switchover Status
-  hosts: ora19cdg02.bwok.org
+  hosts: ora19cdg01.bwok.org
   tasks:
     - name: Source the bash profile and set environment variables
       shell: |
@@ -14,15 +14,12 @@
       register: db_status
       ignore_errors: yes
 
-    - name: Check if the SQL query returned "no rows selected"
-      set_fact:
-        query_result: "{{ 'no rows selected' in db_status.stdout }}"
+    - name: Check if SQL query returned "no rows selected"
+      fail:
+        msg: "SQL query did not return 'no rows selected'. Process halted."
+      when: "'no rows selected' not in db_status.stdout"
 
-    - name: Display the database status
+    - name: Output SQL query results
       debug:
-        msg: "Database Status:\n{{ db_status.stdout }}"
-
-    - name: Notify if no rows were selected
-      debug:
-        msg: "No rows were selected, query executed successfully."
-      when: query_result
+        msg: "{{ db_status.stdout }}"
+      when: "'no rows selected' in db_status.stdout"
