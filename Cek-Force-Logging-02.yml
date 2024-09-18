@@ -1,0 +1,25 @@
+---
+- name: Query Oracle Database Role and Switchover Status
+  hosts: ora19cdg02.bwok.org
+  tasks:
+    - name: Source the bash profile and set environment variables
+      shell: |
+        # Set Environment Variables
+        export ORACLE_HOME=/u01/app/oracle/product/19.3.0/dbhome_1
+        export ORACLE_SID=orcl
+        export PATH=$PATH:$ORACLE_HOME/bin
+
+        # Run SQL Query
+        echo "SELECT log_mode, force_logging FROM v\$database;" | sqlplus -s / as sysdba
+      register: db_status
+      ignore_errors: yes
+
+    - name: Check the SQL query result
+      debug:
+        msg: "SQL query executed successfully."
+      when: "'ARCHIVELOG' in db_status.stdout and 'YES' in db_status.stdout"
+
+    - name: Fail the playbook if the query status is not as expected
+      fail:
+        msg: "SQL query execution failed or status is not as expected. Halting playbook."
+      when: "'ARCHIVELOG' not in db_status.stdout or 'YES' not in db_status.stdout"
