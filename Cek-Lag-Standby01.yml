@@ -1,0 +1,28 @@
+---
+- name: Query Oracle Database Role and Switchover Status
+  hosts: ora19cdg01.bwok.org
+  tasks:
+    - name: Source the bash profile and set environment variables
+      shell: |
+        # Set Environment Variables
+        export ORACLE_HOME=/u01/app/oracle/product/19.3.0/dbhome_1
+        export ORACLE_SID=orcl
+        export PATH=$PATH:$ORACLE_HOME/bin
+
+        # Run SQL Query
+        echo "SELECT inst_id, name, value FROM gv\$dataguard_stats WHERE name='apply lag';" | sqlplus -s / as sysdba
+      register: db_status
+      ignore_errors: yes
+
+    - name: Check if the query result contains the expected lag
+      assert:
+        that:
+          - "'1 apply lag' in db_status.stdout"
+          - "'+00 00:00:00' in db_status.stdout"
+        fail_msg: "The query result does not contain the expected apply lag. Stopping playbook."
+        success_msg: "Query result contains the expected apply lag. Proceeding with playbook."
+
+    - name: Continue with the rest of the playbook
+      debug:
+        msg: "Query result verified. Proceeding with further tasks."
+      when: "'1 apply lag' in db_status.stdout and '+00 00:00:00' in db_status.stdout"
