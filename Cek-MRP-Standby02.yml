@@ -1,0 +1,25 @@
+---
+- name: Query Oracle Database Role and Switchover Status
+  hosts: ora19cdg02.bwok.org
+  tasks:
+    - name: Source the bash profile and set environment variables
+      shell: |
+        # Set Environment Variables
+        export ORACLE_HOME=/u01/app/oracle/product/19.3.0/dbhome_1
+        export ORACLE_SID=orcl
+        export PATH=$PATH:$ORACLE_HOME/bin
+
+        # Run SQL Query
+        echo "SELECT process, status, sequence# FROM v\$managed_standby;" | sqlplus -s / as sysdba
+      register: db_status
+      ignore_errors: yes
+
+    - name: Check if MRP0 is present in the output
+      debug:
+        msg: "MRP0 process found, the operation is successful."
+      when: "'MRP0' in db_status.stdout"
+
+    - name: Fail if MRP0 is not found
+      fail:
+        msg: "MRP0 process not found. Stopping playbook execution."
+      when: "'MRP0' not in db_status.stdout"
