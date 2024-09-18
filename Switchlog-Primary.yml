@@ -1,0 +1,25 @@
+---
+- name: Run Oracle Commands
+  hosts: ora19cdg01.bwok.org
+  tasks:
+    - name: Source the bash profile and set environment variables
+      shell: |
+        # Set Environment Variables
+        export ORACLE_HOME=/u01/app/oracle/product/19.3.0/dbhome_1
+        export ORACLE_SID=orcl
+        export PATH=$PATH:$ORACLE_HOME/bin
+
+        # Run SQL Commands
+        for i in {1..3}; do
+          echo "ALTER SYSTEM ARCHIVE LOG CURRENT;" | sqlplus -s / as sysdba
+          sleep 5  # Optional: Pause for 5 seconds between executions
+        done
+
+        # Run ARCHIVE LOG LIST
+        echo "ARCHIVE LOG LIST;" | sqlplus -s / as sysdba
+      register: db_status
+      ignore_errors: yes
+
+    - name: Display SQL command result
+      debug:
+        msg: "{{ db_status.stdout_lines }}"
