@@ -1,0 +1,25 @@
+---
+- name: Query Oracle Database Role and Switchover Status
+  hosts: ora19cdg02.bwok.org
+  tasks:
+    - name: Source the bash profile and set environment variables
+      shell: |
+        # Set Environment Variables
+        export ORACLE_HOME=/u01/app/oracle/product/19.3.0/dbhome_1
+        export ORACLE_SID=orcl
+        export PATH=$PATH:$ORACLE_HOME/bin
+
+        # Run SQL Query
+        echo "SELECT inst_id, name, value FROM gv\$dataguard_stats WHERE name='apply lag';" | sqlplus -s / as sysdba
+      register: db_status
+      ignore_errors: yes
+
+    - name: Check if SQL query returned "no rows selected"
+      fail:
+        msg: "SQL query did not return 'no rows selected'. Process halted."
+      when: "'no rows selected' not in db_status.stdout"
+
+    - name: Output SQL query results
+      debug:
+        msg: "{{ db_status.stdout }}"
+      when: "'no rows selected' in db_status.stdout"
