@@ -14,6 +14,10 @@
       register: db_status
       ignore_errors: yes
 
+    - name: Display SQL Query Output
+      debug:
+        msg: "{{ db_status.stdout }}"
+
     - name: Check if MRP0 is present in the output
       debug:
         msg: "MRP0 process found, the operation is successful."
